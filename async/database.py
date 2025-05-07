@@ -1,20 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
 
 import mysql.connector
 
 
-# In[2]:
-
-
 class DatabaseHelper:
-    
-
     def __init__(self, host, user, passwd, database):
-        
         self.host = host
         self.user = user
         self.passwd = passwd
@@ -25,57 +17,48 @@ class DatabaseHelper:
     """
         create connection
     """
+
     def connect(self):
-        
         self.conn = mysql.connector.connect(
-          host = self.host,
-          user = self.user,
-          passwd = self.passwd,
-          database = self.database
+            host=self.host, user=self.user, passwd=self.passwd, database=self.database
         )
-    
+
     """
         disconnect
     """
-    def disconnect(self):
 
+    def disconnect(self):
         if self.conn is not None:
             self.conn.close()
-        
+
     """
         create cursor
     """
-    def getCursor(self, dictionary = False):
-        
+
+    def getCursor(self, dictionary=False):
         if self.conn is None:
             self.connect()
-            
-        self.cursor = self.conn.cursor(dictionary = dictionary)
-        
+
+        self.cursor = self.conn.cursor(dictionary=dictionary)
+
         return self.cursor
-        
+
     def execute(self, sql, val):
-        
         self.cursor.execute(sql, val)
         self.conn.commit()
-            
-    def query(self, sql):
 
+    def query(self, sql):
         self.cursor.execute(sql)
-        
+
         # Fetch all rows from the result set
         results = self.cursor.fetchall()
 
         return results
 
-# In[3]:
-
 
 class JobStatusEnum:
-    
-    SUBMITTED = 'submitted'
-    PROCESSING = 'processing'
-    COMPLETED = 'completed'
-    FAILED = 'failed'
-    CANCELLED = 'cancelled'
-
+    SUBMITTED = "submitted"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"

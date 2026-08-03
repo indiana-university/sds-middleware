@@ -1,27 +1,5 @@
 services:
-  db:
-    image: mysql:8.0
-    restart: always
-    environment:
-      DATABASE__HOST: db
-      MYSQL_DATABASE: 'my_app_db'
-      MYSQL_ROOT_PASSWORD: 'rootpassword'
-      MYSQL_USER: 'dbtester'
-      MYSQL_PASSWORD: 'supersecret'
-    ports:
-      - '3306:3306'
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./localtest/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - sds-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  app:
+  sds-middleware:
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,9 +20,6 @@ services:
       # - ./.env:/app/.env:ro
       # Mount logs directory
       - ./logs:/app/logs
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - sds-network
     healthcheck:
@@ -57,6 +32,3 @@ services:
 networks:
   sds-network:
     driver: bridge
-
-volumes:
-  db_data:

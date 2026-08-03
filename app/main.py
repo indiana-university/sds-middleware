@@ -49,6 +49,7 @@ async def database_connection_status():
         test_database_from_config,
         settings.database.model_dump(),
     )
+    result["details"] = {"host": result["details"].get("host")}
     return JSONResponse(
         content=result,
         status_code=200 if result["success"] else 503,

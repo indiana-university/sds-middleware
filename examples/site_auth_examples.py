@@ -181,7 +181,7 @@ def main():
     validation_scenarios()
     
     print("=== Configuration Reference ===")
-    print("Make sure your sds.cfg file contains:")
+    print("Make sure your .env file contains:")
     print("""
 [webserver]
 client_secret=your-default-client-secret-here

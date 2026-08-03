@@ -4,6 +4,12 @@
 
 ### Option 1: Docker Deployment (Recommended)
 
+First, create the local configuration file:
+
+```bash
+cp .env.example .env
+```
+
 Deploy the entire application with one command:
 
 ```bash
@@ -26,6 +32,9 @@ This starts:
 ### Option 2: Local Development
 
 ```bash
+# Create and configure the local environment file (first run only)
+cp .env.example .env
+
 # Start the server locally
 ./run.sh
 
@@ -77,7 +86,7 @@ A secure web-based admin console is now available for managing system configurat
 
 #### Features:
 - 🔐 Secure authentication with secret code
-- 📝 View and edit all configuration fields from `sds.cfg`
+- 📝 View and edit all configuration fields from `.env`
 - 💾 Automatic backups before changes
 - ✅ Real-time validation
 - 🎨 Modern, responsive web interface
@@ -107,21 +116,14 @@ This application implements client secret authentication for all API calls excep
 
 ### Configuration
 
-Configure your client secrets in the `app/core/sds.cfg` file:
+Copy `.env.example` to `.env` and configure your client secrets there. Environment
+variables override values from `.env`.
 
-```ini
-[webserver]
-client_secret=your-default-client-secret-here
+```dotenv
+WEBSERVER__CLIENT_SECRET=your-default-client-secret-here
 
 # Site-specific client secrets
-[site_site1]
-client_secret=site1-secret-key-12345
-
-[site_site2]
-client_secret=site2-secret-key-67890
-
-[site_site3]
-client_secret=site3-secret-key-abcde
+WEBSERVER__SITE_SECRETS='{"site1":"site1-secret-key-12345","site2":"site2-secret-key-67890","site3":"site3-secret-key-abcde"}'
 ```
 
 ### Site Identification
@@ -206,4 +208,3 @@ Run the security tests to verify the authentication:
 ```bash
 pytest tests/test_security.py -v
 ```
-

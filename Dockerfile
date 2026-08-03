@@ -22,9 +22,6 @@ COPY app/ ./app/
 COPY examples/ ./examples/
 COPY scripts/ ./scripts/
 
-# Update database host in sds.cfg for Docker environment
-RUN sed -i 's/^host = localhost$/host = db/' app/core/sds.cfg
-
 # Create necessary directories with proper permissions
 RUN mkdir -p storages/caches storages/jobs && \
     chmod -R 777 storages

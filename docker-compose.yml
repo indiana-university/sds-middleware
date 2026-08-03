@@ -3,6 +3,7 @@ services:
     image: mysql:8.0
     restart: always
     environment:
+      DATABASE__HOST: db
       MYSQL_DATABASE: 'my_app_db'
       MYSQL_ROOT_PASSWORD: 'rootpassword'
       MYSQL_USER: 'dbtester'
@@ -27,6 +28,8 @@ services:
     restart: always
     ports:
       - '8080:8080'
+    env_file:
+      - .env
     environment:
       # Admin console secret
       ADMIN_SECRET_CODE: 'admin-secret-2026'
@@ -35,8 +38,8 @@ services:
     volumes:
       # Mount storages directory with read/write permissions (bind mount)
       - ./storages:/app/storages
-      # Mount config file (optional - comment out to use container's default)
-      # - ./app/core/sds.cfg:/app/app/core/sds.cfg
+      # Optional configuration file
+      # - ./.env:/app/.env:ro
       # Mount logs directory
       - ./logs:/app/logs
     depends_on:

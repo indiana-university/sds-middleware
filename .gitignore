@@ -10,6 +10,7 @@ __pycache__/
 
 storages/
 logs/
+backups/
 
 # Distribution / packaging
 .Python

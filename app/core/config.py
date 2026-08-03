@@ -1,9 +1,12 @@
-import configparser
-import os
+"""Application settings loaded from environment variables and the project .env file."""
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
 
 class WebServerSettings(BaseSettings):
@@ -15,12 +18,12 @@ class WebServerSettings(BaseSettings):
     cert_file: str = "</path/to/fullchain.pem>"
     key_file: str = "</path/to/privkey.pem>"
     ssl_hostname: str = "<hostname>"
-    client_secret: str = "<your-client-secret-here>"  # Default fallback
-    site_secrets: Dict[str, str] = {}  # Site-specific secrets
+    client_secret: str = "<your-client-secret-here>"
+    site_secrets: Dict[str, str] = Field(default_factory=dict)
 
 
 class SdsSyncSettings(BaseSettings):
-    hsi_bin_path: str = "</path/to/hpss/bin/hsi>"
+    hsi_bin_path: str = "/usr/local/bin"
     hsi_keytab_path: str = "</path/to/xxx.keytab>"
     hsi_user: str = "<hsi username>"
     firewall_flag: str = "on"
@@ -36,65 +39,43 @@ class SdsAsyncSettings(BaseSettings):
 
 
 class WorkerSettings(BaseSettings):
-    staging_dir: str = "/var/www/html/staging"
+    staging_dir: str = "staging"
     smtp_server: str = "localhost"
-    email_sender: str = "noreply.sds@iu.edu"
-    contact_email: str = "rdsadmin@iu.edu"
+    email_sender: str = "<email_sender>"
+    contact_email: str = "<contact_email>"
     http_download_server: str = "https://<hostname>/staging"
-    staging_usage_threshold_in_gb: int = 950
+    staging_usage_threshold_in_gb: int = 1
 
 
 class DatabaseSettings(BaseSettings):
-    host: str = "<db_host>"
-    user: str = "<db_username>"
-    password: str = "<db_password>"
-    db: str = "<db_name>"
-    job_table: str = "userjobs"
+    host: str = "localhost"
+    user: str = "dbtester"
+    password: str = "<database-password>"
+    db: str = "my_app_db"
+    job_table: str = "user_jobs"
 
 
 class LoggingSettings(BaseSettings):
-    api_log_file: str = "</path/to/api.log>"
-    worker_log_file: str = "</path/to/worker.log>"
+    api_log_file: str = "api.log"
+    worker_log_file: str = "worker.log"
 
 
 class Settings(BaseSettings):
-    webserver: WebServerSettings
-    sds_sync: SdsSyncSettings
-    sds_async: SdsAsyncSettings
-    worker: WorkerSettings
-    database: DatabaseSettings
-    logging: LoggingSettings
+    """Nested settings populated by ``SECTION__FIELD`` environment variables."""
 
-    @classmethod
-    def from_config_file(cls, config_file: str = "sds.cfg"):
-        config = configparser.ConfigParser()
-        current_file = Path(__file__).resolve()
-        current_dir = current_file.parent
-        config_file_path = current_dir / config_file
-        with open(config_file_path) as fh:
-            config.read_file(fh)
-        
-        # Parse site-specific secrets from config
-        site_secrets = {}
-        for section_name in config.sections():
-            if section_name.startswith('site_'):
-                site_name = section_name[5:]  # Remove 'site_' prefix
-                if 'client_secret' in config[section_name]:
-                    site_secrets[site_name] = config[section_name]['client_secret']
-        
-        # Create webserver settings with site secrets
-        webserver_config = dict(config['webserver'])
-        webserver_config['site_secrets'] = site_secrets
-        
-        return cls(
-            webserver=WebServerSettings(**webserver_config),
-            sds_sync=SdsSyncSettings(**dict(config['sds_sync'])),
-            sds_async=SdsAsyncSettings(**dict(config['sds_async'])),
-            worker=WorkerSettings(**dict(config['worker'])),
-            database=DatabaseSettings(**dict(config['database'])),
-            logging=LoggingSettings(**dict(config['logging']))
-        )
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE,
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        extra="ignore",
+    )
+
+    webserver: WebServerSettings = Field(default_factory=WebServerSettings)
+    sds_sync: SdsSyncSettings = Field(default_factory=SdsSyncSettings)
+    sds_async: SdsAsyncSettings = Field(default_factory=SdsAsyncSettings)
+    worker: WorkerSettings = Field(default_factory=WorkerSettings)
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    logging: LoggingSettings = Field(default_factory=LoggingSettings)
 
 
-# Create global settings instance
-settings = Settings.from_config_file()
+settings = Settings()

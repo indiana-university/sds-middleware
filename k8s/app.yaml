@@ -40,7 +40,8 @@ spec:
             command:
             - sh
             - -c
-            - curl --fail --silent --show-error -H "X-Client-Secret: $WEBSERVER__CLIENT_SECRET" http://localhost:8080/config/db
+            - >-
+              curl --fail --silent --show-error -H "X-Client-Secret: $WEBSERVER__CLIENT_SECRET" http://localhost:8080/config/db
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 10

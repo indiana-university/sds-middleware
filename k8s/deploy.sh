@@ -21,13 +21,9 @@ if ! "${KUBECTL[@]}" cluster-info &> /dev/null; then
     exit 1
 fi
 
-# Check if Docker image exists
-if ! docker images | grep -q "sds-middleware"; then
-    echo "📦 Building Docker image..."
-    docker build -t sds-middleware:latest .
-else
-    echo "✅ Docker image found"
-fi
+# Build the exact image tag referenced by the Deployment.
+echo "📦 Building Docker image..."
+docker build -t sds-middleware:latest .
 
 # Create namespace
 echo "📁 Creating namespace..."
@@ -49,9 +45,10 @@ echo "🔐 Creating runtime configuration secret from .env..."
 # Deploy Application
 echo "🌐 Deploying application..."
 "${KUBECTL[@]}" apply -f k8s/app.yaml
+"${KUBECTL[@]}" rollout restart deployment/sds-middleware-app -n sds-middleware
 
 echo "⏳ Waiting for application to be ready..."
-"${KUBECTL[@]}" wait --for=condition=ready pod -l app=sds-middleware -n sds-middleware --timeout=120s
+"${KUBECTL[@]}" rollout status deployment/sds-middleware-app -n sds-middleware --timeout=120s
 
 # Get service information
 echo ""

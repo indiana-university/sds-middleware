@@ -1,9 +1,10 @@
 """Application settings loaded from environment variables and the project .env file."""
+import json
 from pathlib import Path
-from typing import Dict
+from typing import Annotated, Dict
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
@@ -19,7 +20,17 @@ class WebServerSettings(BaseSettings):
     key_file: str = "</path/to/privkey.pem>"
     ssl_hostname: str = "<hostname>"
     client_secret: str = "<your-client-secret-here>"
-    site_secrets: Dict[str, str] = Field(default_factory=dict)
+    site_secrets: Annotated[Dict[str, str], NoDecode] = Field(default_factory=dict)
+
+    @field_validator("site_secrets", mode="before")
+    @classmethod
+    def parse_site_secrets(cls, value):
+        """Accept JSON from .env, including legacy single-quoted values."""
+        if isinstance(value, str):
+            if value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+            return json.loads(value)
+        return value
 
 
 class SdsSyncSettings(BaseSettings):

@@ -49,6 +49,7 @@ class WorkerSettings(BaseSettings):
 
 class DatabaseSettings(BaseSettings):
     host: str = "localhost"
+    port: int = 3306
     user: str = "dbtester"
     password: str = "<database-password>"
     db: str = "my_app_db"

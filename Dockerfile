@@ -20,7 +20,6 @@ COPY README.md ./
 # Copy application code
 COPY app/ ./app/
 COPY examples/ ./examples/
-COPY scripts/ ./scripts/
 
 # Create necessary directories with proper permissions
 RUN mkdir -p storages/caches storages/jobs && \

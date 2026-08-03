@@ -1,13 +1,23 @@
 #!/bin/bash
 # Quick deployment script for SDS Middleware on Kubernetes (OrbStack)
 
-set -e
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
+K8S_CONTEXT="${K8S_CONTEXT:-orbstack}"
+KUBECTL=(kubectl --context "$K8S_CONTEXT")
 
 echo "🚀 Starting SDS Middleware deployment to Kubernetes..."
 
 # Check if kubectl is available
 if ! command -v kubectl &> /dev/null; then
     echo "❌ kubectl not found. Please install OrbStack and enable Kubernetes."
+    exit 1
+fi
+
+if ! "${KUBECTL[@]}" cluster-info &> /dev/null; then
+    echo "❌ Kubernetes context '$K8S_CONTEXT' is unavailable. Enable Kubernetes in OrbStack and try again."
     exit 1
 fi
 
@@ -21,41 +31,42 @@ fi
 
 # Create namespace
 echo "📁 Creating namespace..."
-kubectl apply -f k8s/namespace.yaml
+"${KUBECTL[@]}" apply -f k8s/namespace.yaml
 
-# Create ConfigMaps and Secrets
-echo "⚙️  Creating ConfigMaps..."
-kubectl apply -f k8s/configmap.yaml
+if [[ ! -f .env ]]; then
+    echo "❌ Missing .env. Copy .env.example to .env and set the remote database values first."
+    exit 1
+fi
 
-# Deploy MySQL
-echo "🗄️  Deploying MySQL..."
-kubectl apply -f k8s/mysql.yaml
-
-echo "⏳ Waiting for MySQL to be ready..."
-kubectl wait --for=condition=ready pod -l app=mysql -n sds-middleware --timeout=120s
+# Keep runtime configuration, including remote database credentials, out of Git.
+echo "🔐 Creating runtime configuration secret from .env..."
+"${KUBECTL[@]}" create secret generic sds-runtime-env \
+    --from-env-file=.env \
+    --namespace=sds-middleware \
+    --dry-run=client \
+    --output=yaml | "${KUBECTL[@]}" apply -f -
 
 # Deploy Application
 echo "🌐 Deploying application..."
-kubectl apply -f k8s/app.yaml
+"${KUBECTL[@]}" apply -f k8s/app.yaml
 
 echo "⏳ Waiting for application to be ready..."
-kubectl wait --for=condition=ready pod -l app=sds-middleware -n sds-middleware --timeout=120s
+"${KUBECTL[@]}" wait --for=condition=ready pod -l app=sds-middleware -n sds-middleware --timeout=120s
 
 # Get service information
 echo ""
 echo "✅ Deployment complete!"
 echo ""
 echo "📊 Service Status:"
-kubectl get services -n sds-middleware
+"${KUBECTL[@]}" get services -n sds-middleware
 
 echo ""
 echo "🔗 Access the application at:"
 echo "   Main App:            http://localhost:8080"
-echo "   Admin Console:       http://localhost:8080/admin"
-echo "   Operations Console:  http://localhost:8080/ops"
+echo "   Database status:     http://localhost:8080/config/db (requires client secret)"
 echo ""
 echo "📝 View logs with:"
-echo "   kubectl logs -n sds-middleware -l app=sds-middleware --tail=100 -f"
+echo "   kubectl --context $K8S_CONTEXT logs -n sds-middleware -l app=sds-middleware --tail=100 -f"
 echo ""
 echo "🔍 Check status with:"
-echo "   kubectl get all -n sds-middleware"
+echo "   kubectl --context $K8S_CONTEXT get all -n sds-middleware"

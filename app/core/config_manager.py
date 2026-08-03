@@ -25,7 +25,7 @@ CONFIG_SECTIONS = {
         "staging_dir", "smtp_server", "email_sender", "contact_email",
         "http_download_server", "staging_usage_threshold_in_gb",
     ),
-    "database": ("host", "user", "password", "db", "job_table"),
+    "database": ("host", "port", "user", "password", "db", "job_table"),
     "logging": ("api_log_file", "worker_log_file"),
 }
 

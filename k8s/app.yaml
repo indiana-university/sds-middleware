@@ -13,18 +13,6 @@ spec:
       labels:
         app: sds-middleware
     spec:
-      initContainers:
-      - name: wait-for-db
-        image: busybox:1.35
-        command:
-        - sh
-        - -c
-        - |
-          until nc -z db 3306; do
-            echo "Waiting for MySQL to be ready..."
-            sleep 2
-          done
-          echo "MySQL is ready!"
       containers:
       - name: app
         image: sds-middleware:latest
@@ -32,17 +20,9 @@ spec:
         ports:
         - containerPort: 8080
           name: http
-        env:
-        - name: ADMIN_SECRET_CODE
-          valueFrom:
-            configMapKeyRef:
-              name: sds-config
-              key: ADMIN_SECRET_CODE
-        - name: OPS_SECRET_CODE
-          valueFrom:
-            configMapKeyRef:
-              name: sds-config
-              key: OPS_SECRET_CODE
+        envFrom:
+        - secretRef:
+            name: sds-runtime-env
         volumeMounts:
         - name: storages
           mountPath: /app/storages
@@ -56,9 +36,11 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 10
         readinessProbe:
-          httpGet:
-            path: /
-            port: 8080
+          exec:
+            command:
+            - sh
+            - -c
+            - curl --fail --silent --show-error -H "X-Client-Secret: $WEBSERVER__CLIENT_SECRET" http://localhost:8080/config/db
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 10

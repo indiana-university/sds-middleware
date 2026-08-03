@@ -6,8 +6,6 @@ from app.core.config import settings
 from app.core.db_test import test_database_from_config
 from app.core.logger import add_logging_middleware
 from app.core.security import add_security_middleware
-from app.admin_console import router as admin_router
-from app.ops_console import router as ops_router
 from app.worker import router as worker_router
 from app.hipaa_api import router as hipaa_router
 import os
@@ -21,8 +19,6 @@ add_security_middleware(app)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Include routers
-app.include_router(admin_router)
-app.include_router(ops_router)
 app.include_router(worker_router)
 app.include_router(hipaa_router)
 

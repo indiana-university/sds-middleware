@@ -37,11 +37,6 @@ async def favicon():
 async def read_root():
     return {"Hello": "World"}
 
-@app.get("/config")
-async def read_config():
-    return settings.model_dump()
-
-
 @app.get("/config/db")
 async def database_connection_status():
     """Test the configured database connection and report its status."""

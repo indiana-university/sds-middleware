@@ -1,7 +1,9 @@
 from fastapi import FastAPI
+from fastapi.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from app.core.config import settings
+from app.core.db_test import test_database_from_config
 from app.core.logger import add_logging_middleware
 from app.core.security import add_security_middleware
 from app.admin_console import router as admin_router
@@ -38,3 +40,16 @@ async def read_root():
 @app.get("/config")
 async def read_config():
     return settings.model_dump()
+
+
+@app.get("/config/db")
+async def database_connection_status():
+    """Test the configured database connection and report its status."""
+    result = await run_in_threadpool(
+        test_database_from_config,
+        settings.database.model_dump(),
+    )
+    return JSONResponse(
+        content=result,
+        status_code=200 if result["success"] else 503,
+    )

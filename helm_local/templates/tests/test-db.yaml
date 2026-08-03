@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "sds-middleware.fullname" . }}-db-test"
+  labels:
+    {{- include "sds-middleware.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: db-status
+      image: curlimages/curl:8.12.1
+      command:
+        - sh
+        - -c
+        - >-
+          curl --fail --silent --show-error -H "X-Client-Secret: $WEBSERVER__CLIENT_SECRET" http://{{ include "sds-middleware.fullname" . }}:{{ .Values.service.port }}/config/db
+      envFrom:
+        - secretRef:
+            name: {{ required "config.existingSecret is required" .Values.config.existingSecret }}

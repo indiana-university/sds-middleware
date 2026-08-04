@@ -1,0 +1,6 @@
+apiVersion: v2
+name: sds-middleware
+description: Helm chart for SDS Middleware on IU Enterprise Kubernetes
+type: application
+version: 0.1.0
+appVersion: "latest"

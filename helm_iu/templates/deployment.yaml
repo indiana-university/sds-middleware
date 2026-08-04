@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sds-middleware.fullname" . }}
+  namespace: {{ include "sds-middleware.namespace" . }}
+  labels:
+    {{- include "sds-middleware.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.sdsMiddleware.replicas }}
+  selector:
+    matchLabels:
+      {{- include "sds-middleware.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sds-middleware.selectorLabels" . | nindent 8 }}
+      {{- with .Values.sdsMiddleware.rolloutToken }}
+      annotations:
+        sds.iu.edu/rollout-token: {{ . | quote }}
+      {{- end }}
+    spec:
+      {{- with .Values.sdsMiddleware.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: sds-middleware
+          image: "{{ .Values.sdsMiddleware.image.repository }}:{{ .Values.sdsMiddleware.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.sdsMiddleware.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ required "config.existingSecret is required" .Values.config.existingSecret }}
+          resources:
+            {{- toYaml .Values.sdsMiddleware.resources | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.sdsMiddleware.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.sdsMiddleware.readinessProbe | nindent 12 }}

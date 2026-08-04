@@ -1,5 +1,6 @@
 services:
   sds-middleware:
+    image: sds-middleware:latest
     build:
       context: .
       dockerfile: Dockerfile

@@ -23,7 +23,7 @@ sdsMiddleware:
       memory: "0"
     limits:
       cpu: "1"
-      memory: 512Mi
+      memory: 1Gi
   livenessProbe:
     httpGet:
       path: /
@@ -47,11 +47,10 @@ config:
   existingSecret: sds-middleware-env
 
 ingress:
-  enabled: false
+  enabled: true
   className: traefik
   annotations: {}
-  # Required when ingress.enabled is true.
-  host: ""
+  host: sds-middleware.apps.iu.edu
   path: /
   pathType: Prefix
   tls: []

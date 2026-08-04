@@ -28,7 +28,8 @@ IMAGE_TAG=latest \
 ./deploy_helm_iu.sh
 ```
 
-To enable ingress, provide an explicit hostname:
+Ingress is enabled by default for `sds-middleware.apps.iu.edu`. To override the
+hostname, provide an explicit value:
 
 ```bash
 INGRESS_HOST=sds-middleware.apps.iu.edu ./deploy_helm_iu.sh

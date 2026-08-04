@@ -6,6 +6,7 @@ ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env}"
 NAMESPACE="${NAMESPACE:-ua-vpit--research-technologies--rds}"
 RELEASE_NAME="${RELEASE_NAME:-sds-middleware}"
 HELM_TIMEOUT="${HELM_TIMEOUT:-10m}"
+STATUS_INTERVAL="${STATUS_INTERVAL:-20}"
 ROLLOUT_TOKEN="${ROLLOUT_TOKEN:-$(date -u '+%Y%m%d%H%M%S')}"
 IMAGE_REGISTRY_SERVER="${IMAGE_REGISTRY_SERVER:-registry.docker.iu.edu}"
 IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-registry.docker.iu.edu/rds/sds-middleware}"
@@ -37,24 +38,36 @@ if ! kubectl get namespace "$NAMESPACE" >/dev/null 2>&1; then
 fi
 
 echo "Applying runtime configuration secret from $ENV_FILE..."
-kubectl create secret generic sds-middleware-env \
+SECRET_OUT=$(kubectl create secret generic sds-middleware-env \
   --namespace "$NAMESPACE" \
   --from-env-file="$ENV_FILE" \
-  --dry-run=client \
-  --output=yaml | kubectl apply -f -
+  2>&1) && echo "Runtime configuration secret created." || {
+  if echo "$SECRET_OUT" | grep -q "already exists"; then
+    echo "Runtime configuration secret already exists; reusing it."
+  else
+    echo "ERROR creating runtime configuration secret: $SECRET_OUT" >&2
+    exit 1
+  fi
+}
 
 USE_IMAGE_PULL_SECRET=false
 if [ -n "$IMAGE_REGISTRY_USERNAME" ] && [ -n "$IMAGE_REGISTRY_PASSWORD" ]; then
   IMAGE_PULL_SECRET="${IMAGE_PULL_SECRET:-sds-middleware-registry}"
   echo "Applying image pull secret $IMAGE_PULL_SECRET..."
-  kubectl create secret docker-registry "$IMAGE_PULL_SECRET" \
+  REGISTRY_SECRET_OUT=$(kubectl create secret docker-registry "$IMAGE_PULL_SECRET" \
     --namespace "$NAMESPACE" \
     --docker-server="$IMAGE_REGISTRY_SERVER" \
     --docker-username="$IMAGE_REGISTRY_USERNAME" \
     --docker-password="$IMAGE_REGISTRY_PASSWORD" \
     --docker-email="${IMAGE_REGISTRY_EMAIL:-unused@example.com}" \
-    --dry-run=client \
-    --output=yaml | kubectl apply -f -
+    2>&1) && echo "Image pull secret created." || {
+    if echo "$REGISTRY_SECRET_OUT" | grep -q "already exists"; then
+      echo "Image pull secret already exists; reusing it."
+    else
+      echo "ERROR creating image pull secret: $REGISTRY_SECRET_OUT" >&2
+      exit 1
+    fi
+  }
   USE_IMAGE_PULL_SECRET=true
 elif [ -n "$IMAGE_PULL_SECRET" ]; then
   USE_IMAGE_PULL_SECRET=true
@@ -78,12 +91,47 @@ if [ -n "${INGRESS_HOST:-}" ]; then
 fi
 
 echo "Deploying $RELEASE_NAME to $NAMESPACE with Helm release storage: $HELM_DRIVER"
-helm upgrade --install "$RELEASE_NAME" "${SCRIPT_DIR}/helm_iu" \
+
+print_deploy_status() {
+  echo "" >&2
+  echo "Waiting for Helm resources at $(date '+%Y-%m-%d %H:%M:%S')..." >&2
+  kubectl get deployment,service -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}" 2>/dev/null || true
+  kubectl get pods -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}" -o wide 2>/dev/null || true
+  kubectl get events -n "$NAMESPACE" --sort-by=.lastTimestamp 2>/dev/null | tail -n 8 || true
+}
+
+watch_deploy_status() {
+  while :; do
+    sleep "$STATUS_INTERVAL"
+    print_deploy_status
+  done
+}
+
+stop_status_watcher() {
+  if [ -n "${STATUS_PID:-}" ]; then
+    kill "$STATUS_PID" 2>/dev/null || true
+    wait "$STATUS_PID" 2>/dev/null || true
+  fi
+}
+
+watch_deploy_status &
+STATUS_PID=$!
+trap stop_status_watcher EXIT INT TERM
+
+if ! helm upgrade --install "$RELEASE_NAME" "${SCRIPT_DIR}/helm_iu" \
   --namespace "$NAMESPACE" \
   "$@" \
   --wait \
   --rollback-on-failure \
-  --timeout "$HELM_TIMEOUT"
+  --timeout "$HELM_TIMEOUT"; then
+  stop_status_watcher
+  echo "Helm deployment failed. Inspect namespace quota and recent events:" >&2
+  echo "  kubectl describe resourcequota -n $NAMESPACE" >&2
+  echo "  kubectl get events -n $NAMESPACE --sort-by=.lastTimestamp" >&2
+  exit 1
+fi
+
+stop_status_watcher
 
 echo "Deployment complete."
 kubectl get deployment,service -n "$NAMESPACE" -l "app.kubernetes.io/instance=${RELEASE_NAME}"

@@ -17,8 +17,10 @@ sdsMiddleware:
     port: 8080
   resources:
     requests:
-      cpu: 100m
-      memory: 128Mi
+      # IU Enterprise Kubernetes requires requests on every container. These
+      # values reserve no capacity; scheduling is governed by the limits.
+      cpu: "0"
+      memory: "0"
     limits:
       cpu: "1"
       memory: 512Mi

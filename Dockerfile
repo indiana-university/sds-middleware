@@ -30,7 +30,9 @@ COPY examples/ ./examples/
 # HSI/HTAR is installed under /hpss_src/hsihtar-10.3.0-3/bin.
 COPY HSIupdate/hsihtar-clt-10.3.0-3.ubuntu.x86_64.rpm /tmp/hsihtar-clt.rpm
 RUN rpm -ivh --nodeps /tmp/hsihtar-clt.rpm && \
-    rm -f /tmp/hsihtar-clt.rpm
+    rm -f /tmp/hsihtar-clt.rpm && \
+    ln -s /hpss_src/hsihtar-10.3.0-3/bin/hsi /usr/local/bin/hsi && \
+    ln -s /hpss_src/hsihtar-10.3.0-3/bin/htar /usr/local/bin/htar
 
 # Create necessary directories with proper permissions
 RUN mkdir -p storages/caches storages/jobs && \

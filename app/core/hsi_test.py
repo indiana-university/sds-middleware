@@ -3,8 +3,65 @@ HSI binary testing utilities.
 Tests if HSI (HPSS Interface) binary exists and is executable.
 """
 import os
+import re
+import shutil
 import subprocess
 from typing import Dict, Any
+
+
+def get_hsi_version() -> Dict[str, Any]:
+    """Return the version reported by the HSI executable available on PATH."""
+    hsi_bin_path = shutil.which("hsi")
+    if not hsi_bin_path:
+        return {
+            "success": False,
+            "version": None,
+            "message": "HSI binary is not installed or is not on PATH",
+        }
+
+    try:
+        proc = subprocess.run(
+            [hsi_bin_path, "-V"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "version": None,
+            "message": "HSI version command timed out",
+        }
+    except OSError as exc:
+        return {
+            "success": False,
+            "version": None,
+            "message": f"Unable to run HSI: {exc}",
+        }
+
+    output = "\n".join(part for part in (proc.stdout, proc.stderr) if part)
+    # HSI has used more than one banner format across client releases.  In
+    # particular, some builds send the banner to stderr and return a non-zero
+    # status even though ``-V`` successfully reports the installed version.
+    # The version token is the authoritative result of this probe.
+    match = re.search(
+        r"\bhsi[._\s-]+(\d+(?:[._-][A-Za-z0-9]+)+)",
+        output,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return {
+            "success": False,
+            "version": None,
+            "message": "HSI did not return a version",
+        }
+
+    return {
+        "success": True,
+        "version": match.group(1),
+        "binary": hsi_bin_path,
+    }
 
 
 def test_hsi_binary(hsi_bin_path: str) -> Dict[str, Any]:

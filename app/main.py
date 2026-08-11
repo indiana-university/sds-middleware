@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from app.core.config import settings
 from app.core.db_test import test_database_from_config
+from app.core.hsi_test import get_hsi_version
 from app.core.logger import add_logging_middleware
 from app.core.security import add_security_middleware
 from app.worker import router as worker_router
@@ -41,6 +42,16 @@ async def database_connection_status():
         settings.database.model_dump(),
     )
     result["details"] = {"host": result["details"].get("host")}
+    return JSONResponse(
+        content=result,
+        status_code=200 if result["success"] else 503,
+    )
+
+
+@app.get("/config/hsi")
+async def hsi_version_status():
+    """Report whether HSI is installed and return its client version."""
+    result = await run_in_threadpool(get_hsi_version)
     return JSONResponse(
         content=result,
         status_code=200 if result["success"] else 503,

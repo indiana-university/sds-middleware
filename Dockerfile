@@ -4,9 +4,14 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies and uv
+# Install system dependencies, the HSI/HTAR client, and uv
 RUN apt-get update && apt-get install -y \
     curl \
+    libedit2 \
+    libmunge2 \
+    libncurses6 \
+    libtirpc3 \
+    rpm \
     && rm -rf /var/lib/apt/lists/* \
     && curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -20,6 +25,12 @@ COPY README.md ./
 # Copy application code
 COPY app/ ./app/
 COPY examples/ ./examples/
+
+# The image is Debian-based, so use the vendor's Ubuntu x86_64 RPM.
+# HSI/HTAR is installed under /hpss_src/hsihtar-10.3.0-3/bin.
+COPY HSIupdate/hsihtar-clt-10.3.0-3.ubuntu.x86_64.rpm /tmp/hsihtar-clt.rpm
+RUN rpm -ivh --nodeps /tmp/hsihtar-clt.rpm && \
+    rm -f /tmp/hsihtar-clt.rpm
 
 # Create necessary directories with proper permissions
 RUN mkdir -p storages/caches storages/jobs && \

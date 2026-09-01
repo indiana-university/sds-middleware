@@ -11,6 +11,10 @@ __pycache__/
 storages/
 logs/
 backups/
+HSIupade/
+HSIupdate/
+creditentials/
+*.keytab
 
 # Distribution / packaging
 .Python

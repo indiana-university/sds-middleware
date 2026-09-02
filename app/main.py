@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from app.core.config import settings
 from app.core.db_test import test_database_from_config
-from app.core.hsi_test import get_hsi_version
+from app.core.hsi_test import get_hsi_version, test_hsi_configuration
 from app.core.logger import add_logging_middleware
 from app.core.security import add_security_middleware
 from app.worker import router as worker_router
@@ -52,6 +52,19 @@ async def database_connection_status():
 async def hsi_version_status():
     """Report whether HSI is installed and return its client version."""
     result = await run_in_threadpool(get_hsi_version)
+    return JSONResponse(
+        content=result,
+        status_code=200 if result["success"] else 503,
+    )
+
+
+@app.get("/config/hsi/verbose")
+async def hsi_configuration_status():
+    """Run the configured HSI authentication and transfer test."""
+    result = await run_in_threadpool(
+        test_hsi_configuration,
+        settings.sds_sync.model_dump(),
+    )
     return JSONResponse(
         content=result,
         status_code=200 if result["success"] else 503,

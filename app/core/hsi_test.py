@@ -4,9 +4,10 @@ Tests if HSI (HPSS Interface) binary exists and is executable.
 """
 import os
 import re
-import shutil
 import subprocess
 from typing import Dict, Any
+
+from app.core.config import settings
 
 
 HSI_TEST_HOST = "hsi.sdarchive.iu.edu"
@@ -15,14 +16,24 @@ HSI_TEST_COMMAND = (
 )
 
 
+def _extract_hsi_version(output: str) -> str | None:
+    """Extract an HSI client version from command output."""
+    match = re.search(
+        r"\bhsi[._\s-]+(\d+(?:[._-][A-Za-z0-9]+)+)",
+        output,
+        flags=re.IGNORECASE,
+    )
+    return match.group(1) if match else None
+
+
 def get_hsi_version() -> Dict[str, Any]:
-    """Return the version reported by the HSI executable available on PATH."""
-    hsi_bin_path = shutil.which("hsi")
-    if not hsi_bin_path:
+    """Return the version reported by the configured HSI executable."""
+    hsi_bin_path = os.path.join(settings.sds_sync.hsi_bin_path, "hsi")
+    if not os.path.isfile(hsi_bin_path):
         return {
             "success": False,
             "version": None,
-            "message": "HSI binary is not installed or is not on PATH",
+            "message": f"Configured HSI binary not found: {hsi_bin_path}",
         }
 
     try:
@@ -33,7 +44,17 @@ def get_hsi_version() -> Dict[str, Any]:
             timeout=5,
             check=False,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        output = "\n".join(
+            part for part in (_command_output(exc.stdout), _command_output(exc.stderr)) if part
+        )
+        version = _extract_hsi_version(output)
+        if version:
+            return {
+                "success": True,
+                "version": version,
+                "binary": hsi_bin_path,
+            }
         return {
             "success": False,
             "version": None,
@@ -51,12 +72,8 @@ def get_hsi_version() -> Dict[str, Any]:
     # particular, some builds send the banner to stderr and return a non-zero
     # status even though ``-V`` successfully reports the installed version.
     # The version token is the authoritative result of this probe.
-    match = re.search(
-        r"\bhsi[._\s-]+(\d+(?:[._-][A-Za-z0-9]+)+)",
-        output,
-        flags=re.IGNORECASE,
-    )
-    if not match:
+    version = _extract_hsi_version(output)
+    if not version:
         return {
             "success": False,
             "version": None,
@@ -65,7 +82,7 @@ def get_hsi_version() -> Dict[str, Any]:
 
     return {
         "success": True,
-        "version": match.group(1),
+        "version": version,
         "binary": hsi_bin_path,
     }
 

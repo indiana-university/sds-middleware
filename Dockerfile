@@ -26,6 +26,9 @@ COPY README.md ./
 COPY app/ ./app/
 COPY examples/ ./examples/
 
+# The configured HSI keytab is required by /config/hsi/verbose at runtime.
+COPY credentials/avldata.keytab ./credentials/avldata.keytab
+
 # The image is Debian-based, so use the vendor's Ubuntu x86_64 RPM.
 # HSI/HTAR is installed under /hpss_src/hsihtar-10.3.0-3/bin.
 COPY HSIupdate/hsihtar-clt-10.3.0-3.ubuntu.x86_64.rpm /tmp/hsihtar-clt.rpm

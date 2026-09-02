@@ -10,12 +10,6 @@ from typing import Dict, Any
 from app.core.config import settings
 
 
-HSI_TEST_HOST = "hsi.sdarchive.iu.edu"
-HSI_TEST_COMMAND = (
-    "firewall -on; get file.zip : IEEE_VIS_SciVis_Challenge/2004/2004_entries.zip"
-)
-
-
 def _extract_hsi_version(output: str) -> str | None:
     """Extract an HSI client version from command output."""
     match = re.search(
@@ -109,14 +103,16 @@ def test_hsi_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
     """
     hsi_bin_path = str(config.get("hsi_bin_path", ""))
     hsi_binary = _configured_hsi_binary(hsi_bin_path)
+    host = str(config.get("hsi_host", settings.sds_sync.hsi_host))
     keytab_path = str(config.get("hsi_keytab_path", ""))
     user = str(config.get("hsi_user", ""))
     firewall_flag = str(config.get("firewall_flag", "on"))
+    test_file = str(config.get("hsi_test_file", settings.sds_sync.hsi_test_file))
     timeout_in_secs = config.get("timeout_in_secs", 3300)
-    hsi_command = HSI_TEST_COMMAND.replace("firewall -on", f"firewall -{firewall_flag}")
+    hsi_command = f"firewall -{firewall_flag}; get file.zip : {test_file}"
     command = [
         hsi_binary,
-        "-h", HSI_TEST_HOST,
+        "-h", host,
         "-d2",
         "-A", "keytab",
         "-k", keytab_path,

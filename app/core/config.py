@@ -35,9 +35,11 @@ class WebServerSettings(BaseSettings):
 
 class SdsSyncSettings(BaseSettings):
     hsi_bin_path: str = "/usr/local/bin"
+    hsi_host: str = "hsi.sdarchive.iu.edu"
     hsi_keytab_path: str = "</path/to/xxx.keytab>"
     hsi_user: str = "<hsi username>"
     firewall_flag: str = "on"
+    hsi_test_file: str = "IEEE_VIS_SciVis_Challenge/2004/2004_entries.zip"
     timeout_in_secs: int = 3300
 
 

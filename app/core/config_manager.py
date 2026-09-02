@@ -16,7 +16,10 @@ CONFIG_SECTIONS = {
         "url_base_path", "debug_level", "port", "env", "use_ssl", "cert_file",
         "key_file", "ssl_hostname", "client_secret", "site_secrets",
     ),
-    "sds_sync": ("hsi_bin_path", "hsi_keytab_path", "hsi_user", "firewall_flag", "timeout_in_secs"),
+    "sds_sync": (
+        "hsi_bin_path", "hsi_host", "hsi_keytab_path", "hsi_user", "firewall_flag",
+        "hsi_test_file", "timeout_in_secs",
+    ),
     "sds_async": (
         "message_broker_host", "message_broker_port", "work_queue",
         "same_job_minimum_interval_in_min", "black_list",

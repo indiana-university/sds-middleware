@@ -5,6 +5,7 @@ Tests if HSI (HPSS Interface) binary exists and is executable.
 import os
 import re
 import subprocess
+import time
 from typing import Dict, Any
 
 from app.core.config import settings
@@ -18,6 +19,16 @@ def _extract_hsi_version(output: str) -> str | None:
         flags=re.IGNORECASE,
     )
     return match.group(1) if match else None
+
+
+def _format_file_size(size_bytes: int) -> str:
+    """Format a byte count using compact binary K, M, and G units."""
+    size = float(size_bytes)
+    for unit in ("B", "K", "M", "G"):
+        if size < 1024 or unit == "G":
+            return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} {unit}"
+        size /= 1024
+    return f"{size_bytes} B"
 
 
 def get_hsi_version() -> Dict[str, Any]:
@@ -119,8 +130,15 @@ def test_hsi_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
         "-l", user,
         hsi_command,
     ]
+    downloaded_file = "file.zip"
+    previous_file_stat = None
+    try:
+        previous_file_stat = os.stat(downloaded_file)
+    except FileNotFoundError:
+        pass
 
     try:
+        started_at = time.monotonic()
         proc = subprocess.run(
             command,
             capture_output=True,
@@ -128,6 +146,7 @@ def test_hsi_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
             timeout=timeout_in_secs,
             check=False,
         )
+        elapsed_seconds = time.monotonic() - started_at
     except subprocess.TimeoutExpired as exc:
         return {
             "success": False,
@@ -143,7 +162,7 @@ def test_hsi_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
             "stderr": "",
         }
 
-    return {
+    result = {
         "success": proc.returncode == 0,
         "message": "HSI configuration test completed"
         if proc.returncode == 0
@@ -152,6 +171,26 @@ def test_hsi_configuration(config: Dict[str, Any]) -> Dict[str, Any]:
         "stdout": proc.stdout,
         "stderr": proc.stderr,
     }
+    if proc.returncode != 0:
+        return result
+
+    try:
+        downloaded_file_stat = os.stat(downloaded_file)
+    except FileNotFoundError:
+        return result
+
+    if (
+        previous_file_stat is None
+        or downloaded_file_stat.st_mtime_ns != previous_file_stat.st_mtime_ns
+        or downloaded_file_stat.st_size != previous_file_stat.st_size
+    ):
+        result["information"] = {
+            "remote_file": test_file,
+            "local_file": downloaded_file,
+            "size": _format_file_size(downloaded_file_stat.st_size),
+            "download_time_seconds": round(elapsed_seconds, 3),
+        }
+    return result
 
 
 def test_hsi_binary(hsi_bin_path: str) -> Dict[str, Any]:

@@ -69,3 +69,12 @@ async def hsi_configuration_status():
         content=result,
         status_code=200 if result["success"] else 503,
     )
+
+
+@app.get("/config/email")
+async def email_configuration():
+    """Report the configured SMTP server and username (never the password)."""
+    return {
+        "smtp_server": settings.worker.smtp_server,
+        "smtp_server_user": settings.worker.smtp_server_user,
+    }

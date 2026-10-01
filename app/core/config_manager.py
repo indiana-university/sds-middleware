@@ -25,7 +25,8 @@ CONFIG_SECTIONS = {
         "same_job_minimum_interval_in_min", "black_list",
     ),
     "worker": (
-        "staging_dir", "smtp_server", "email_sender", "contact_email",
+        "staging_dir", "smtp_server", "smtp_server_user", "smtp_server_password",
+        "smtp_server_test", "email_sender", "contact_email",
         "http_download_server", "staging_usage_threshold_in_gb",
     ),
     "database": ("host", "port", "user", "password", "db", "job_table"),

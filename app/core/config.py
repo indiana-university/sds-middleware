@@ -54,6 +54,9 @@ class SdsAsyncSettings(BaseSettings):
 class WorkerSettings(BaseSettings):
     staging_dir: str = "staging"
     smtp_server: str = "localhost"
+    smtp_server_user: str = ""
+    smtp_server_password: str = ""
+    smtp_server_test: str = ""
     email_sender: str = "<email_sender>"
     contact_email: str = "<contact_email>"
     http_download_server: str = "https://<hostname>/staging"
